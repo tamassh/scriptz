@@ -2,48 +2,63 @@
 
 # Sync file change / directory watch by Tamas Dravavolgyi <tamas.dravavolgyi@capita.co.uk>
 
-# export watch=/var/atlassian
+watch=/var/atlassian
+watches=`cat /proc/sys/fs/inotify/max_user_watches`
+
+first=1
+lazyness=3
 
 function takeCareOfFileAndSync(){
+
 this=$1
 withThis=$2
-	
-	if [ -z $# -eq 1 ]; then
-		echo "Exiting due to first run .."
-		break
-	fi
 
-	diff $this $withThis | grep ^\> | awk '{print $2}' > $sync
-	echo "rsync ${sync}"
+# Work.variables
+sync=`mktemp`
+tmp=`mktemp`
+tmp2=`mktemp`
 
-	if [ $? -eq 0 ]; then
-		echo "Coool"
-	else
-		echo "Eeehhhhh"
-	fi
+# Sorting inotify data
+awk '{print $1$3}' < ${inot} | grep -v \/$ | sort | uniq > ${tmp}
+
+# Sorting input ($1, $2) data
+diff ${this} ${withThis} | grep ^\> | awk '{print $2}' | grep -v \/$ | sort | uniq > ${tmp2}
+
+# Concat>inotify+in.data
+cat ${tmp} ${tmp2} | sort | uniq > ${sync}
+
+echo "rsync ${sync}"
+echo "rm ${sync}"
+
 }
 
-# Aligning up to HH:MM:01 sec to avoid possible clock skew or delays in operation.
-atSec=`date +%S`
-waitSec=`expr 60 - $atSec + 1`
-
-echo "Starting main loop in $waitSec second, it's time for inner peace :)"
-sleep $waitSec
-
+if [ $watches -lt 65536 ]; then
+	echo "65536" > /proc/sys/fs/inotify/max_user_watches
+fi
 
 for ((;;)) do
 
-	new=/tmp/watch`date +%s`
+	het=`date +%s`
+	new=/tmp/watch${het}
+	export inot=/tmp/inot${het}
 
-	find
-
-	inotifywait -m -o $new -e modify -r /tmp &
-
-	sleep 10
+	find ${watch} > $new
+	
+	echo "inotifywait -m -o $new -e modify -r ${watch} &>/dev/null &"
+	inotifywait -m -o ${inot} -e modify -r ${watch} &>/dev/null &
+	
+	sleep $lazyness
 
 	killall inotifywait
-	takeCareOfFileAndSync $old $new
 
-	old=$new
+	if [ $first -eq 1 ]; then
+		first=0
+	else
+		takeCareOfFileAndSync $old $new
+	fi
+	
+	old=$new		# set current filename as the other cycle's baseline
+	
+	ls -1 /tmp/watch* | grep -v $old | grep -v $new | xargs rm -f	# Clean everything which is not current
+
 done
-
