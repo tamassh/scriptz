@@ -1,0 +1,43 @@
+#/bin/bash
+#
+# Tool to control IPMI stuff.
+# Usage:
+#   ipmi {tyan|sm} {reset|pxe} {FQDN/IP}
+#
+# Tamas Dravavolgyi <tamasd@graphcore.ai>
+# 24 Sep 2019, 13:55 < Basic functionality >
+# 2 Oct 2019, 11:35 < Added DELL capability and PXE EFI boot option >
+
+tool=ipmitool
+
+op_reset="power reset"
+op_set_pxe="chassis bootdev pxe"
+op_set_pxe_efi="chassis bootdev pxe options=efiboot"
+
+dell_cred_u="-U root"
+dell_cred_p="-P root"
+
+tyan_cred_u="-U root"
+tyan_cred_p="-P superuser"
+
+sm_cred_u="-U ADMIN"
+sm_cred_p="-P ADMIN"
+
+if [[ -z $1 ]] || [[ -z $2 ]] || [[ ! -f $(which ${tool}) ]]; then
+  printf "${0} {tyan|sm|dell} {reset|pxe|pxefi} <FQDN or IP> \n"
+  exit 1
+fi
+
+case ${2} in
+  reset) act=${op_reset} ;;
+  pxe) act=${op_set_pxe} ;;
+  pxefi) act=${op_set_pxe_efi} ;;
+  *) echo "Invalid action parameter, valid ones: reset, pxe" && exit 2 ;;
+esac
+
+case ${1} in
+  tyan) ${tool} ${tyan_cred_u} ${tyan_cred_p} -H ${3} ${act} ;;
+  sm) ${tool} ${sm_cred_u} ${sm_cred_p} -H ${3} ${act} ;;
+  dell) ${tool} ${dell_cred_u} ${dell_cred_p} -H ${3} ${act} ;;
+  *) echo "Chassis unknown, valid ones: tyan, sm" && exit 3 ;;
+esac

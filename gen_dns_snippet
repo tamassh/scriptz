@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+# DNS config generator..
+#
+# Usage:
+#   ./GENERATOR <inputfile> <option_host_name>
+#
+# Input file should be MAC hostname IP
+# Separated by space, then new line, example:
+#
+# 70:B3:D5:1B:31:28 ipum73-ipmi 10.18.8.215
+# 70:B3:D5:1B:31:29 ipum73 10.18.8.216
+# 
+# Example:
+#
+# tom@r90rpyav:~/scripts$ ./gen_dns_snippet hosts_oslo oslo.graphcore.ai
+#
+# tom@r90rpyav:~/scripts$ ./gen_dns_snippet hosts_2 oslo.graphcore.ai
+# 8.233 IN PTR ipum82-ipmi.oslo.graphcore.ai. ; 10.18.8.233 
+# 8.234 IN PTR ipum82.oslo.graphcore.ai. ; 10.18.8.234 
+# 8.235 IN PTR ipum83-ipmi.oslo.graphcore.ai. ; 10.18.8.235 
+# 8.236 IN PTR ipum83.oslo.graphcore.ai. ; 10.18.8.236 
+# 
+# by Tamas Dravavolgyi <tamasd@graphcore.ai>
+#
+# 1 Oct 2019, v 1.0 - Basic functionality
+
+
+# Parameter check, no clue on content, follow recommendation
+if [[ -z $1 ]] || [[ -z $2 ]];  then
+  exit 1
+elif [[ -f $1 ]]; then
+  fin=$1
+fi
+
+lines_in=$(wc -l ${fin} | cut -d' ' -f1)
+option_host_name=${2}
+
+printf "Reverse zone config: \n\n"
+
+# Generate the config line by line
+for line in $(seq ${lines_in}); do
+  L2=$(head -${line} ${fin} | tail -1 | awk '{print $2}')
+  L3=$(head -${line} ${fin} | tail -1 | awk '{print $3}')
+  L4=$(head -${line} ${fin} | tail -1 | awk '{print $3}' | cut -d \. -f 4,3)
+  printf "${L4} IN PTR ${L2}.${2}. ; ${L3} \n"
+done
+
+
+printf "\nA record config: \n\n"
+
+# Generate the config line by line
+for line in $(seq ${lines_in}); do
+  L2=$(head -${line} ${fin} | tail -1 | awk '{print $2}')
+  L3=$(head -${line} ${fin} | tail -1 | awk '{print $3}')
+  printf "${L2}      A       ${L3}\n"
+done

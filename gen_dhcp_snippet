@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# DHCP config generator..
+#
+# Usage:
+#   ./GENERATOR <inputfile> <option_host_name>
+#
+# Input file should be MAC hostname IP
+# Separated by space, then new line, example:
+#
+# 70:B3:D5:1B:31:28 ipum73-ipmi 10.18.8.215
+# 70:B3:D5:1B:31:29 ipum73 10.18.8.216
+# 
+# Example:
+#
+# tom@r90rpyav:~/scripts$ ./gen_dhcp_snippet hosts_oslo oslo.graphcore.ai
+# host ipum73-ipmi {
+#     hardware ethernet 70:b3:d5:1b:31:28;
+#     fixed-address 10.18.8.215;
+#     option host-name "ipum73-ipmi.oslo.graphcore.ai";
+# }
+#
+# host ipum73 {
+#     hardware ethernet 70:b3:d5:1b:31:29;
+#     fixed-address 10.18.8.216;
+#    option host-name "ipum73.oslo.graphcore.ai";
+# }
+# 
+# by Tamas Dravavolgyi <tamasd@graphcore.ai>
+#
+# 27 Sep 2019, v 1.0 - Basic functionality
+
+
+# Parameter check, no clue on content, follow recommendation
+if [[ -z $1 ]] || [[ -z $2 ]]; then
+  exit 1
+elif [[ -f $1 ]]; then
+  fin=$1
+fi
+
+lines_in=$(wc -l ${fin} | cut -d' ' -f1)
+option_host_name=${2}
+
+# Generate the config line by line
+for line in $(seq ${lines_in}); do
+  L1=$(head -${line} ${fin} | tail -1 | awk '{print $1}')
+  L2=$(head -${line} ${fin} | tail -1 | awk '{print $2}')
+  L3=$(head -${line} ${fin} | tail -1 | awk '{print $3}')
+  printf "host ${L2} {\n"
+  printf "    hardware ethernet ${L1,,};\n"
+  printf "    fixed-address ${L3};\n"
+  printf "    option host-name \"${L2}.${2}\";\n"
+  printf "} \n\n"
+done

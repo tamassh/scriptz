@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# set -x
+
+systems=/var/lib/cobbler/config/systems.d
+
+space4="    "
+space6="      "
+space8="        "
+space10="          "
+
+cd ${systems}
+for i in $(ls -1 *.json); do
+  system=$(cat ${i} | python -m json.tool | grep \"name\" | cut -d\" -f4)
+  profile=$(cat ${i} | python -m json.tool | grep \"profile\" | cut -d\" -f4)
+  interface=$(cat ${i} | python -m json.tool | grep -A1 \"interfaces\" | tail -1 |  cut -d\" -f2)
+  mac=$(cat ${i} | python -m json.tool | grep \"mac_address\" | cut -d\" -f4)
+
+  echo "${space4}'${system}':"
+  echo "${space6}profile: '${profile}'" 
+  echo "${space6}interfaces:"
+  echo "${space8}'${interface}':"
+  echo "${space10}mac_address: '${mac}'"
+done
+

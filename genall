@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [[ -z $1 ]] || [[ -z $2 ]];  then
+  exit 1
+elif [[ -f $1 ]]; then
+  fin=$1
+fi
+
+./gen_dhcp_snippet ${fin} ${2}
+./gen_dns_snippet ${fin} ${2}
+
