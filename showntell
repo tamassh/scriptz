@@ -1,0 +1,11 @@
+#!/bin/bash
+
+this="1000 2000 3000 4000 5000 6000 7000"
+
+for i in ${this}; do
+  chmod ${i} alma 
+  echo "chmod ${i} = $(ls -la | grep alma)"
+  chmod ugo-s alma
+done
+
+chmod 0000 alma
